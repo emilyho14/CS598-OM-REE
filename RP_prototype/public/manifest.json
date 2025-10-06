@@ -1,0 +1,38 @@
+{
+  "manifest_version": 3,
+  "name": "MP-2 Tool",
+  "version": "1.0",
+  "description": "Template code to develop a browser extension for MP-2.",
+  "host_permissions": [
+    "https://www.reddit.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.reddit.com/*"
+      ],
+      "js": [
+        "script.js"
+      ],
+      "css": [
+        "script.css"
+      ],
+      "run_at": "document_start"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "script.css",
+        "data/mp-logo.png",
+        "react-ui/*"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ],
+  "icons": {
+    "128": "data/mp-logo.png" 
+  }
+}
