@@ -1,4 +1,4 @@
-# MP-2: Building a Browser Extension
+<!-- # MP-2: Building a Browser Extension
 
 This repository contains the instructions and template files to complete our second mini-project!
 
@@ -106,4 +106,4 @@ You will be evaluated on the tasks as follows:
 
 * (2 points) Report template is completed.
 * (2 point) Having a reasonable hide feature implementation in Javascript/CSS.
-* (1 points) Hide feature is functional when using the `build-[NETID].zip` file as an extension.
+* (1 points) Hide feature is functional when using the `build-[NETID].zip` file as an extension. -->
