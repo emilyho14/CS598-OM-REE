@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "MP-2 Tool",
+  "name": "RP REE Prototype",
   "version": "1.0",
-  "description": "Template code to develop a browser extension for MP-2.",
+  "description": "Code for Reddit browser extension for RP 598 OM Group 1.",
   "host_permissions": [
     "https://www.reddit.com/*"
   ],
@@ -24,7 +24,7 @@
     {
       "resources": [
         "script.css",
-        "data/mp-logo.png",
+        "data/rp-logo.png",
         "react-ui/*"
       ],
       "matches": [
@@ -33,6 +33,6 @@
     }
   ],
   "icons": {
-    "128": "data/mp-logo.png" 
+    "128": "data/rp-logo.png" 
   }
 }

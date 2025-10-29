@@ -105,10 +105,10 @@ function createFeedbackBox(editor) {
 
         <div style="display:flex;gap:8px;">
           <button style="flex:1;padding:6px 10px;border:1px solid #d1d5db;border-radius:8px;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">
-            <span>Ignore</span>
+            <span>Retry Feedback</span>
           </button>
           <button style="flex:1;padding:6px 10px;border:none;border-radius:8px;background:#2563eb;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">
-            <span>Accept</span>
+            <span>Retry Suggestions</span>
           </button>
         </div>
       </div>
@@ -146,21 +146,39 @@ function createFeedbackBox(editor) {
 
 
   // Attach to the first visible textarea
+  // function attachFeedback() {
+  //   const textAreas = deepQuerySelector(document, 'textarea#innerTextArea.no-label');
+  //   const visible = textAreas.filter(el => {
+  //     const r = el.getBoundingClientRect();
+  //     return r.width > 0 && r.height > 0 && getComputedStyle(el).display !== 'none';
+  //   });
+
+  //   if (visible.length > 0) {
+  //     document.querySelectorAll('#feedback-box').forEach(e => e.remove());
+  //     createFeedbackBox(visible[0]);
+  //   } else {
+  //     console.log('[mp] No visible textareas found, retrying...');
+  //     setTimeout(attachFeedback, 1500);
+  //   }
+  // }
   function attachFeedback() {
-    const textAreas = deepQuerySelector(document, 'textarea#innerTextArea.no-label');
-    const visible = textAreas.filter(el => {
+    // Search the deep DOM (including shadow roots) for the post editor div
+    const editors = deepQuerySelector(document, 'div[contenteditable="true"][name="body"]');
+    const visible = editors.filter(el => {
       const r = el.getBoundingClientRect();
-      return r.width > 0 && r.height > 0 && getComputedStyle(el).display !== 'none';
+      return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== 'hidden';
     });
 
     if (visible.length > 0) {
       document.querySelectorAll('#feedback-box').forEach(e => e.remove());
-      createFeedbackBox(visible[0]);
+      console.log('[mp] Found post body editor:', visible[0]);
+      createFeedbackBox(visible[0]); // Pass the editable div to your popup creator
     } else {
-      console.log('[mp] No visible textareas found, retrying...');
+      console.log('[mp] No post editor found yet, retrying...');
       setTimeout(attachFeedback, 1500);
     }
   }
+
 
   // Observe user focus events (so it reappears when clicking “Reply”)
   document.addEventListener('focusin', e => {
@@ -179,7 +197,7 @@ setTimeout(run, 1200);
 window.addEventListener('load', async () => {
   console.log('Page loaded! Starting extension code...');
   const button = document.createElement('button');
-  button.textContent = 'Click Me, RP CMV test :)';
+  button.textContent = 'Click Me, RP r/careeradvice test :)';
   button.classList.add('sample-button');
   button.addEventListener('click', () => console.log('Button clicked!'));
   const beforeElement = document.body.querySelector('faceplate-tracker[noun="reddit_logo"]');
