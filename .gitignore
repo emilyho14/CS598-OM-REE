@@ -1,7 +1,0 @@
-# Large data (ignore CSVs in these dirs)
-data/train/*.csv
-updated_data_rp3/data/**/*.csv
-
-# Keep tiny samples if needed
-!data/train/sample_*.csv
-!updated_data_rp3/data/**/sample_*.csv
