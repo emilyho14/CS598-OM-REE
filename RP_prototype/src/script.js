@@ -29,6 +29,30 @@ function run() {
     return out;
   }
 
+  function collectPostData() {
+    const data = {};
+
+    // --- Post Title ---
+    const titleInput = document.querySelector('textarea[name="title"], input[name="title"]');
+    data.title = titleInput ? titleInput.value.trim() : null;
+
+    // --- Post Body ---
+    const bodyEditor = document.querySelector('div[contenteditable="true"][name="body"]');
+    data.body = bodyEditor ? bodyEditor.innerText.trim() : null;
+
+    // --- Tags / Flair ---
+    const tagElements = document.querySelectorAll(
+      'button[role="menuitemcheckbox"][aria-checked="true"], [data-testid="post-tag"]'
+    );
+    data.tags = Array.from(tagElements).map(el => el.innerText.trim());
+
+    // Optional metadata
+    data.url = location.href;
+    data.subreddit = location.pathname.split('/')[2] || null;
+
+    return data;
+  }
+
 function createFeedbackBox(editor) {
   const rect = editor.getBoundingClientRect();
 
@@ -79,43 +103,93 @@ function createFeedbackBox(editor) {
     <div class="feedback-content">
       <div style="margin-bottom:16px;">
         <p style="margin:0;font-size:14px;color:#374151;">Engagement Score</p>
-        <div style="height:8px;width:100%;background:#fee2e2;border-radius:4px;margin-top:4px;">
-          <div style="height:8px;width:30%;background:#ef4444;border-radius:4px;"></div>
-        </div>
-        <p style="font-size:12px;color:#6b7280;margin-top:4px;">Predicted performance: Above average for r/science</p>
+        <p id="engagement-text" style="font-size:12px;color:#6b7280;margin-top:4px;">
+          Predicted performance: <em>Loading...</em>
+        </p>
       </div>
 
       <div style="margin-bottom:16px;">
         <p style="margin:0;font-size:14px;color:#374151;display:flex;align-items:center;gap:6px;">
-          <span>Risk of Deletion</span>
+          <span>Rules Violated</span>
         </p>
-        <div style="height:8px;width:100%;background:#fee2e2;border-radius:4px;margin-top:4px;">
-          <div style="height:8px;width:40%;background:#ef4444;border-radius:4px;"></div>
-        </div>
-        <p style="font-size:12px;color:#6b7280;margin-top:4px;">Moderate risk: Tone slightly aggressive</p>
+        <p id="rules-violated-text" style="font-size:12px;color:#6b7280;margin-top:4px;">
+          None detected.
+        </p>
       </div>
 
       <div style="border-top:1px solid #e5e7eb;padding-top:10px;">
         <p style="font-size:14px;font-weight:600;margin-bottom:6px;">Suggestions</p>
         <ul style="font-size:13px;color:#374151;margin:0 0 12px 20px;">
-          <li>Consider softening language to match subreddit norms.</li>
-          <li>Add a supporting reference to increase credibility.</li>
-          <li>Shorten intro paragraph for clarity.</li>
+          <p id="suggestions-text" style="font-size:12px;color:#6b7280;margin-top:4px;">
+            No suggestions detected.
+          </p>
         </ul>
 
         <div style="display:flex;gap:8px;">
-          <button style="flex:1;padding:6px 10px;border:1px solid #d1d5db;border-radius:8px;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">
-            <span>Retry Feedback</span>
-          </button>
-          <button style="flex:1;padding:6px 10px;border:none;border-radius:8px;background:#2563eb;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">
-            <span>Retry Suggestions</span>
-          </button>
+          
         </div>
       </div>
     </div>
   `;
 
   box.appendChild(toggle);
+  // --- SEND TO BACKEND BUTTON ---
+const sendButton = document.createElement('button');
+sendButton.textContent = 'Send to Backend';
+Object.assign(sendButton.style, {
+  width: '100%',
+  padding: '8px',
+  borderRadius: '20px',
+  border: 'none',
+  background: '#10b981',
+  color: '#fff',
+  fontWeight: '600',
+  cursor: 'pointer',
+  display: 'flex',           // make it a flex container
+  alignItems: 'center',      // vertically center
+  justifyContent: 'center',  // horizontally center
+});
+
+sendButton.addEventListener('click', async () => {
+  const data = collectPostData();
+  console.log('[mp] Sending post data:', data);
+
+  // Optional: visual feedback
+  sendButton.textContent = 'Sending...';
+  sendButton.disabled = true;
+  sendButton.style.opacity = '0.7';
+
+  // try {
+  //   const res = await fetch('https://your-backend-url.com/api/post', {
+  //     method: 'POST',
+  //     headers: { 'Content-Type': 'application/json' },
+  //     body: JSON.stringify(data),
+  //   });
+
+  //   if (res.ok) {
+  //     console.log('[mp] Successfully sent post data!');
+  //     sendButton.textContent = '✅ Sent!';
+  //     sendButton.style.background = '#16a34a';
+  //   } else {
+  //     console.error('[mp] Failed to send:', res.statusText);
+  //     sendButton.textContent = '❌ Failed';
+  //     sendButton.style.background = '#dc2626';
+  //   }
+  // } catch (err) {
+  //   console.error('[mp] Error sending data:', err);
+  //   sendButton.textContent = '❌ Error';
+  //   sendButton.style.background = '#dc2626';
+  // }
+
+  setTimeout(() => {
+    sendButton.textContent = 'Send to Backend';
+    sendButton.disabled = false;
+    sendButton.style.opacity = '1';
+    sendButton.style.background = '#10b981';
+  }, 2000);
+});
+
+box.appendChild(sendButton);
   document.body.appendChild(box);
 
   // --- DRAG FUNCTIONALITY ---
