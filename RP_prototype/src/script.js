@@ -29,6 +29,38 @@ function run() {
     return out;
   }
 
+  function collectRules(root = document) {
+    const clean = s => (s || "").replace(/\s+/g, " ").trim();
+    const rules = [];
+  
+    root.querySelectorAll("h2.i18n-translatable-text").forEach((h2, i) => {
+      const title = clean(h2.textContent);
+      let description = "";
+  
+      const details = h2.closest("details");
+      if (details) {
+        const parts = [];
+        details.querySelectorAll(".md p, .md li").forEach(el => {
+          const text = clean(el.textContent);
+          if (text) parts.push(el.tagName === "LI" ? `- ${text}` : text);
+        });
+        if (parts.length) description = parts.join(" ");
+      }
+  
+      if (title) {
+        const ruleText = description ? `${i + 1}. ${title} — ${description}` : `${i + 1}. ${title}`;
+        rules.push(ruleText);
+      }
+    });
+  
+    const string_rules = rules.join("\n");
+    return string_rules;
+  }
+  
+  
+  
+
+
   function collectPostData() {
     const data = {};
 
@@ -154,6 +186,9 @@ sendButton.addEventListener('click', async () => {
   const data = collectPostData();
   console.log('[mp] Sending post data:', data);
 
+  const rulesss = collectRules()
+  console.log('RULE DATA: ', rulesss);
+
   // Optional: visual feedback
   sendButton.textContent = 'Sending...';
   sendButton.disabled = true;
@@ -216,6 +251,7 @@ box.appendChild(sendButton);
   });
 
   console.log('[mp] Feedback box injected.');
+  console.log('Rules: ', collectRules());
 }
 
 
