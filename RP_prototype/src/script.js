@@ -65,20 +65,22 @@ function run() {
     const data = {};
 
     // --- Post Title ---
-    const titleInput = document.querySelector('textarea[name="title"], input[name="title"]');
-    data.title = titleInput ? titleInput.value.trim() : null;
+    const titleInput = deepQuerySelector(document, 'textarea[name="title"], input[name="title"], div[role="textbox"][data-testid*="post-title"]')[0];
+    data.title = titleInput
+      ? (titleInput.value || titleInput.innerText || '').trim()
+      : null;
 
-    // --- Post Body ---
-    const bodyEditor = document.querySelector('div[contenteditable="true"][name="body"]');
-    data.body = bodyEditor ? bodyEditor.innerText.trim() : null;
+    // --- Post Body (text or markdown editor) ---
+    const bodyEditor = deepQuerySelector(document, 'div[contenteditable="true"][name="body"], div[role="textbox"][data-testid*="post-content"]')[0];
+    data.body = bodyEditor
+      ? (bodyEditor.innerText || bodyEditor.textContent || '').trim()
+      : null;
 
     // --- Tags / Flair ---
-    const tagElements = document.querySelectorAll(
-      'button[role="menuitemcheckbox"][aria-checked="true"], [data-testid="post-tag"]'
-    );
+    const tagElements = deepQuerySelector(document, 'button[role="menuitemcheckbox"][aria-checked="true"], [data-testid="post-tag"]');
     data.tags = Array.from(tagElements).map(el => el.innerText.trim());
 
-    // Optional metadata
+    // --- Metadata ---
     data.url = location.href;
     data.subreddit = location.pathname.split('/')[2] || null;
 
@@ -177,25 +179,39 @@ Object.assign(sendButton.style, {
   color: '#fff',
   fontWeight: '600',
   cursor: 'pointer',
-  display: 'flex',           // make it a flex container
-  alignItems: 'center',      // vertically center
-  justifyContent: 'center',  // horizontally center
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  marginTop: '8px',
+});
+
+const displayBox = document.createElement('pre');
+Object.assign(displayBox.style, {
+  background: '#f3f4f6',
+  padding: '12px',
+  borderRadius: '10px',
+  marginTop: '10px',
+  fontFamily: 'monospace',
+  whiteSpace: 'pre-wrap',
+  wordBreak: 'break-word',
+  maxHeight: '300px',
+  overflowY: 'auto',
+  border: '1px solid #e5e7eb',
 });
 
 sendButton.addEventListener('click', async () => {
   const data = collectPostData();
   console.log('[mp] Sending post data:', data);
 
-  const rulesss = collectRules()
-  console.log('RULE DATA: ', rulesss);
-
   // Optional: visual feedback
   sendButton.textContent = 'Sending...';
   sendButton.disabled = true;
   sendButton.style.opacity = '0.7';
 
+  // Show data on the page
+  displayBox.textContent = JSON.stringify(data, null, 2);
   // try {
-  //   const res = await fetch('https://your-backend-url.com/api/post', {
+  //   const res = await fetch('https://backend-url.com/api/post', {
   //     method: 'POST',
   //     headers: { 'Content-Type': 'application/json' },
   //     body: JSON.stringify(data),
@@ -223,6 +239,11 @@ sendButton.addEventListener('click', async () => {
     sendButton.style.background = '#10b981';
   }, 2000);
 });
+
+
+const target = document.querySelector('[role="textbox"]')?.closest('form') || document.body;
+target.appendChild(displayBox);
+
 
 box.appendChild(sendButton);
   document.body.appendChild(box);
