@@ -2,6 +2,16 @@
 
 # RP Prototype instructions - taken from CS598 MP2
 
+## Backed update
+to run the backend, create a venv and drop the app.py in the folder with the venv
+run in terminal:
+```
+cd to reddit-backend
+py -3.11 -m venv venv
+.\venv\Scripts\activate
+python -m uvicorn app:app --reload --port 5001
+```
+
 ## Files
 To help you get started, we've provided you with a few starter files. Here is a summary of each one and why you would need to change it:
 

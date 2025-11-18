@@ -14,7 +14,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-API_KEY = "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"
+API_KEY = "YOUR_API_KEY" #replace this with the api key provided
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 
