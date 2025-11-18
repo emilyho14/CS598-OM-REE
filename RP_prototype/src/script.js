@@ -57,9 +57,6 @@ function run() {
     return string_rules;
   }
   
-  
-  
-
 
   function collectPostData() {
     const data = {};
@@ -138,7 +135,7 @@ function createFeedbackBox(editor) {
       <div style="margin-bottom:16px;">
         <p style="margin:0;font-size:14px;color:#374151;">Engagement Score</p>
         <p id="engagement-text" style="font-size:12px;color:#6b7280;margin-top:4px;">
-          Predicted performance: <em>Loading...</em>
+          Predicted performance: <em>n/a</em>
         </p>
       </div>
 
@@ -153,14 +150,19 @@ function createFeedbackBox(editor) {
 
       <div style="border-top:1px solid #e5e7eb;padding-top:10px;">
         <p style="font-size:14px;font-weight:600;margin-bottom:6px;">Suggestions</p>
-        <ul style="font-size:13px;color:#374151;margin:0 0 12px 20px;">
-          <p id="suggestions-text" style="font-size:12px;color:#6b7280;margin-top:4px;">
-            No suggestions detected.
-          </p>
-        </ul>
 
-        <div style="display:flex;gap:8px;">
-          
+        <div id="suggestions-text"
+            style="
+              font-size:13px;
+              color:#374151;
+              margin-top:6px;
+              line-height:1.5;
+              white-space:pre-wrap;
+              max-height:200px;
+              overflow-y:auto;
+              padding-right:4px;
+            ">
+            No suggestions detected.
         </div>
       </div>
     </div>
@@ -169,7 +171,7 @@ function createFeedbackBox(editor) {
   box.appendChild(toggle);
   // --- SEND TO BACKEND BUTTON ---
 const sendButton = document.createElement('button');
-sendButton.textContent = 'Send to Backend';
+sendButton.textContent = 'Generate Feedback';
 Object.assign(sendButton.style, {
   width: '100%',
   padding: '8px',
@@ -184,6 +186,34 @@ Object.assign(sendButton.style, {
   justifyContent: 'center',
   marginTop: '8px',
 });
+
+// initially disable
+sendButton.disabled = true;
+sendButton.style.opacity = "0.5";
+sendButton.style.cursor = "not-allowed";
+// Watch for text changes inside Reddit’s nested editor
+const observer = new MutationObserver(updateButtonState);
+observer.observe(editor, {
+  subtree: true,
+  characterData: true,
+  childList: true
+});
+
+// Run right away for initial state
+updateButtonState();
+
+function updateButtonState() {
+  const content = editor.innerText.trim();
+  if (!content) {
+    sendButton.disabled = true;
+    sendButton.style.opacity = "0.5";
+    sendButton.style.cursor = "not-allowed";
+  } else {
+    sendButton.disabled = false;
+    sendButton.style.opacity = "1";
+    sendButton.style.cursor = "pointer";
+  }
+}
 
 const displayBox = document.createElement('pre');
 Object.assign(displayBox.style, {
@@ -201,44 +231,102 @@ Object.assign(displayBox.style, {
 
 sendButton.addEventListener('click', async () => {
   const data = collectPostData();
-  console.log('[mp] Sending post data:', data);
+  const rules = collectRules();
 
-  // Optional: visual feedback
-  sendButton.textContent = 'Sending...';
+  console.log("[mp] Sending to backend:", data, rules);
+
+  // UI feedback
+  sendButton.textContent = "Sending...";
   sendButton.disabled = true;
-  sendButton.style.opacity = '0.7';
+  sendButton.style.opacity = "0.7";
 
-  // Show data on the page
-  displayBox.textContent = JSON.stringify(data, null, 2);
-  // try {
-  //   const res = await fetch('https://backend-url.com/api/post', {
-  //     method: 'POST',
-  //     headers: { 'Content-Type': 'application/json' },
-  //     body: JSON.stringify(data),
-  //   });
+  // Show raw data in displayBox
+  displayBox.textContent = JSON.stringify({ post: data, rules }, null, 2);
 
-  //   if (res.ok) {
-  //     console.log('[mp] Successfully sent post data!');
-  //     sendButton.textContent = '✅ Sent!';
-  //     sendButton.style.background = '#16a34a';
-  //   } else {
-  //     console.error('[mp] Failed to send:', res.statusText);
-  //     sendButton.textContent = '❌ Failed';
-  //     sendButton.style.background = '#dc2626';
-  //   }
-  // } catch (err) {
-  //   console.error('[mp] Error sending data:', err);
-  //   sendButton.textContent = '❌ Error';
-  //   sendButton.style.background = '#dc2626';
-  // }
+  // SEND DATA TO BACKEND
+  chrome.runtime.sendMessage(
+    {
+      action: "evaluatePost",
+      // postData: JSON.stringify(data),
+      postData: JSON.stringify({
+          full_text: `${data.title}\n\n${data.body}`.trim(),
+          title: data.title,
+          body: data.body,
+          tags: data.tags,
+          subreddit: data.subreddit
+      }),
+      rules: rules
+    },
+    (response) => {
+      console.log("[CONTENT] Raw background response:", response);
 
-  setTimeout(() => {
-    sendButton.textContent = 'Send to Backend';
-    sendButton.disabled = false;
-    sendButton.style.opacity = '1';
-    sendButton.style.background = '#10b981';
-  }, 2000);
+      // Re-enable UI
+      sendButton.textContent = "Generate Feedback";
+      sendButton.disabled = false;
+      sendButton.style.opacity = "1";
+
+      if (!response || !response.success) {
+        console.error("[CONTENT] Error from backend:", response?.error);
+        displayBox.textContent = "❌ Backend error: " + response?.error;
+        return;
+      }
+
+      console.log("Backend result:", response.result);
+
+      // Parsing fields part from json 
+      let parsed;
+      try {
+        parsed = typeof response.result === "string" ? JSON.parse(response.result.replace(/'/g, '"')) : response.result;
+      } catch (e) {
+        parsed = {
+          rules_broken: [],
+          feedback: response.result,
+          engagement: response.engagement
+        };
+      }
+
+      console.log("%c[CONTENT] Parsed object:", parsed);
+
+      // Update UI Feedback Box
+      document.getElementById("rules-violated-text").innerText =
+        parsed.rules_broken?.join(", ") || "None";
+
+      // parse feedback since json technically put rules, feedback and engagement in "feedback"
+      let innerFeedback = parsed.feedback;
+
+      if (typeof innerFeedback === "string") {
+          // Strip markdown fences if the model puts them there too
+          innerFeedback = innerFeedback
+              .replace(/```json/i, "")
+              .replace(/```/g, "")
+              .trim();
+
+          try {
+              const innerObj = JSON.parse(innerFeedback);
+              innerFeedback = innerObj.feedback || innerFeedback;
+          } catch (e) {
+              // leave it
+          }
+      }
+
+      document.getElementById("suggestions-text").innerText =
+          innerFeedback || "No feedback.";
+
+      document.getElementById("engagement-text").innerText =
+        parsed.engagement || "neutral";
+
+    }
+    
+  );
 });
+
+  // setTimeout(() => {
+  //   sendButton.textContent = 'Send to Backend';
+  //   sendButton.disabled = false;
+  //   sendButton.style.opacity = '1';
+  //   sendButton.style.background = '#10b981';
+  // }, 2000);
+// });
 
 
 const target = document.querySelector('[role="textbox"]')?.closest('form') || document.body;
@@ -275,23 +363,6 @@ box.appendChild(sendButton);
   console.log('Rules: ', collectRules());
 }
 
-
-  // Attach to the first visible textarea
-  // function attachFeedback() {
-  //   const textAreas = deepQuerySelector(document, 'textarea#innerTextArea.no-label');
-  //   const visible = textAreas.filter(el => {
-  //     const r = el.getBoundingClientRect();
-  //     return r.width > 0 && r.height > 0 && getComputedStyle(el).display !== 'none';
-  //   });
-
-  //   if (visible.length > 0) {
-  //     document.querySelectorAll('#feedback-box').forEach(e => e.remove());
-  //     createFeedbackBox(visible[0]);
-  //   } else {
-  //     console.log('[mp] No visible textareas found, retrying...');
-  //     setTimeout(attachFeedback, 1500);
-  //   }
-  // }
   function attachFeedback() {
     // Search the deep DOM (including shadow roots) for the post editor div
     const editors = deepQuerySelector(document, 'div[contenteditable="true"][name="body"]');
@@ -324,11 +395,14 @@ box.appendChild(sendButton);
 
 setTimeout(run, 1200);
 
-// Keep your button
 window.addEventListener('load', async () => {
   console.log('Page loaded! Starting extension code...');
+
+  // just to help see if extension was reloaded, number doesn't mean anything
+  const randomId = Math.floor(Math.random() * 100) + 1; 
+
   const button = document.createElement('button');
-  button.textContent = 'Click Me, RP r/careeradvice test :)';
+  button.textContent = `RP extension activated! [${randomId}]`;
   button.classList.add('sample-button');
   button.addEventListener('click', () => console.log('Button clicked!'));
   const beforeElement = document.body.querySelector('faceplate-tracker[noun="reddit_logo"]');

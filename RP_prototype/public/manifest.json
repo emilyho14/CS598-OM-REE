@@ -4,8 +4,17 @@
   "version": "1.0",
   "description": "Code for Reddit browser extension for RP 598 OM Group 1.",
   "host_permissions": [
-    "https://www.reddit.com/*"
+    "https://www.reddit.com/*",
+    "http://localhost:5001/*"
   ],
+  "permissions": [
+    "scripting",
+    "storage",
+    "tabs"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
   "content_scripts": [
     {
       "matches": [
